@@ -1,25 +1,38 @@
+using CairoMakie
 using MakieAnnotation
-using Documenter
+using Random
 
-DocMeta.setdocmeta!(MakieAnnotation, :DocTestSetup, :(using MakieAnnotation); recursive=true)
+Random.seed!(57394)
 
-makedocs(;
-    modules=[MakieAnnotation],
-    authors="Philipp Gewessler",
-    repo="https://github.com/p-gw/MakieAnnotation.jl/blob/{commit}{path}#{line}",
-    sitename="MakieAnnotation.jl",
-    format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://p-gw.github.io/MakieAnnotation.jl",
-        edit_link="main",
-        assets=String[],
-    ),
-    pages=[
-        "Home" => "index.md",
-    ],
+set_theme!(
+    textcolor=:black,
+    markersize=6,
+    fontsize=10,
+    textsize=10
 )
 
-deploydocs(;
-    repo="github.com/p-gw/MakieAnnotation.jl",
-    devbranch="main",
-)
+# Voronoi labels
+n = 150
+pts = [Point(randn(), randn()) for _ in 1:n]
+bb = Rectangle(Point(-6, -6), Point(6, 6))
+
+function voronoi_example(; debug=true)
+    f = Figure()
+    ax = Axis(f[1, 1])
+
+    voronoilabels!(ax, pts, string.(eachindex(pts)), boundingbox=bb, cutoff=0.2, debug=debug)
+    scatter!(ax, pts, color=:black)
+
+    hidedecorations!(ax)
+    hidespines!(ax)
+
+    limits!(ax, -4, 4, -4, 4)
+
+    return f
+end
+
+v1 = voronoi_example(debug=false)
+v2 = voronoi_example(debug=true)
+
+save("docs/figure/voronoi.png", v1)
+save("docs/figure/voronoi_debug.png", v2)
