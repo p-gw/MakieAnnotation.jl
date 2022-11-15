@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MakieAnnotation = "6abd0b7f-13cf-4c6e-b77f-8dee44a71633"
