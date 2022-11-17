@@ -25,7 +25,7 @@ hidedecorations!(ax1)
 hidespines!(ax1)
 limits!(ax1, -3, 3, -3, 3)
 
-save("examples/figure/basic_voronoi.png", f1)
+save("examples/figure/basic_voronoi.png", f1, px_per_unit=2.0)
 
 # with voronoi diagram
 f2, ax2 = scatter(pts, color=:black)
@@ -35,4 +35,4 @@ hidedecorations!(ax2)
 hidespines!(ax2)
 limits!(ax2, -3, 3, -3, 3)
 
-save("examples/figure/basic_voronoi_debug.png", f2)
+save("examples/figure/basic_voronoi_debug.png", f2, px_per_unit=2.0)
