@@ -5,7 +5,19 @@ struct VoronoiCell{PT<:AbstractPoint}
     area::Float64
 end
 
-Makie.@recipe(VoronoiLabels) do scene
+"""
+    voronoilabels(positions, labels; attributes...)
+    voronoilabels!(positions, labels; attributes...)
+
+Annotate a scatter plot using labels derived from a Voronoi diagram.
+
+# Plot attributes
+- `boundingbox`: The outer bounding box of the voronoi diagram in data units. default: nothing
+- `cutoff`: The area cutoff for label display in data unit. If `area(cell) >= cutoff` the label will be displayed. default: 1
+- `textsize`: The textsize of the labels in pixels. default: 12
+- `debug`: Enable debug mode to display the Voronoi diagram in the plot. default: false
+"""
+Makie.@recipe(VoronoiLabels, positions, labels) do scene
     Attributes(;
         boundingbox=nothing,
         debug=false,
@@ -14,7 +26,7 @@ Makie.@recipe(VoronoiLabels) do scene
     )
 end
 
-function Makie.plot!(p::VoronoiLabels{<:Tuple{Vector{<:AbstractPoint},Vector{<:AbstractString}}})
+function Makie.plot!(p::VoronoiLabels)
     if isnothing(p.boundingbox[])
         error("Please provide a valid bounding box.")
     end
