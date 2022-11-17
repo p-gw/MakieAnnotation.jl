@@ -12,11 +12,11 @@ MakieAnnotations is a julia package that provides extended support for plot anno
 ### Voronoi labels
 MakieAnnotation provides automatic labelling of scatter plots using [Voronoi diagrams](https://en.wikipedia.org/wiki/Voronoi_diagram). If the number of data points in a scatter plot is large, then not all points can accomodate labels. By using Voronoi labels the visibility of a label is determined by the area of the associated voronoi cell. If the cell area is large, then the label is displayed. Otherwise the label is not visible. The positioning of the label is determined by the vector between the data point and the cell centroid. Depending on the direction of the vector, the label displayed on top, bottom, left, or right of the data point.
 
-![Voronoi Labels](docs/figure/voronoi_debug.png)
+![Voronoi Labels](examples/figure/basic_voronoi_debug.png)
 
 The final result excluding the Voronoi diagram will look like this:
 
-![Voronoi Labels](docs/figure/voronoi.png)
+![Voronoi Labels](examples/figure/basic_voronoi.png)
 
 To create labels using `voronoilabels` or `voronoilabels!` you are required to specify
 
