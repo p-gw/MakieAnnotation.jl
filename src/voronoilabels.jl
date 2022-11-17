@@ -7,40 +7,115 @@ end
 
 Makie.@recipe(VoronoiLabels) do scene
     Attributes(;
-        boundingbox=nothing,
         debug=false,
         cutoff=1,
         textsize=12
     )
 end
 
-function Makie.plot!(p::VoronoiLabels{<:Tuple{Vector{<:AbstractPoint},Vector{<:AbstractString}}})
-    if isnothing(p.boundingbox[])
-        error("Please provide a valid bounding box.")
-    end
+function Makie.plot!(p::VoronoiLabels)
+    scene = Makie.parent_scene(p)
+    limits = lift(Makie.projview_to_2d_limits, scene.camera.projectionview)
 
-    positions = p[1]
+    voronoi = Observable(VoronoiCell[])
+    label_positions = Observable(Point2f[])
+    label_aligns = Observable(Tuple[])
+    label_offsets = Observable(Tuple[])
+    label_visibility = Observable(Bool[])
     labels = p[2]
 
-    voronoi = voronoi_grid(positions[], p.boundingbox[])
+    onany(limits, p[1]) do lims, positions
+        empty!(voronoi[])
+        empty!(label_positions[])
+        empty!(label_aligns[])
+        empty!(label_offsets[])
+        empty!(label_visibility[])
 
-    if p.debug[]
-        voronoi!(p, voronoi)
-    end
+        bb = bounding_rect(positions, lims)
 
-    for (i, cell) in enumerate(voronoi)
-        if cell.area >= p.cutoff[]
-            position = cell.data
+        append!(voronoi[], voronoi_grid(positions, bb))
+
+        extent = extrema(lims)
+        xmin, xmax = first.(extent)
+        ymin, ymax = last.(extent)
+
+        for cell in voronoi[]
+            isvisible = (cell.area >= p.cutoff[]) && (xmin < first(cell.data) < xmax) && (ymin < last(cell.data) < ymax)
             alignment = xalignment(cell)
             offset = label_offset(alignment)
             align = label_alignment(alignment)
 
-            text!(p, position; text=labels[][i], offset, align, textsize=p.textsize[])
+            push!(label_positions[], cell.data)
+            push!(label_offsets[], offset)
+            push!(label_aligns[], align)
+            push!(label_visibility[], isvisible)
+        end
+
+        notify(voronoi)
+        notify(label_positions)
+        notify(label_offsets)
+        notify(label_aligns)
+        notify(label_visibility)
+    end
+
+    notify(p[1])  # init plotting
+
+    if p.debug[]
+        voronoi!(p, voronoi; p.attributes...)
+    end
+
+    label_plots = Vector{Makie.Text}(undef, length(labels[]))
+
+    for i in eachindex(labels[])
+        pos = label_positions[][i]
+        text = labels[][i]
+        offset = label_offsets[][i]
+        visible = label_visibility[][i]
+        align = label_aligns[][i]
+        label_plots[i] = text!(p, pos; text, offset, align, visible, textsize=p.textsize[])
+    end
+
+    on(label_positions) do l
+        for (i, lp) in enumerate(label_plots)
+            lp.position[] = l[i]
         end
     end
 
+    on(label_offsets) do l
+        for (i, lp) in enumerate(label_plots)
+            lp.offset[] = l[i]
+        end
+    end
+
+    on(label_aligns) do l
+        for (i, lp) in enumerate(label_plots)
+            lp.align[] = l[i]
+        end
+    end
+
+    on(label_visibility) do l
+        for (i, lp) in enumerate(label_plots)
+            lp.visible[] = l[i]
+        end
+    end
 
     return p
+end
+
+function bounding_rect(positions, rect::HyperRectangle{2,<:Real})
+    # check if all points are inside rect
+    xmin, ymin = rect.origin
+    xmax, ymax = rect.origin + rect.widths
+
+    xmin_rect = min(xmin, minimum(first, positions))
+    ymin_rect = min(ymin, minimum(last, positions))
+
+    xmax_rect = max(xmax, maximum(first, positions))
+    ymax_rect = max(ymax, maximum(last, positions))
+
+    p1 = Point{2,Float64}(xmin_rect, ymin_rect)
+    p2 = Point{2,Float64}(xmax_rect, ymax_rect)
+    return Rectangle(p1, p2)
 end
 
 function xangle(cell::VoronoiCell)
@@ -92,21 +167,23 @@ end
 Makie.@recipe(Voronoi) do scene
     Attributes(;
         color=colorant"#2dd4bf",
-        gridcolor=colorant"#d1d5db"
+        gridcolor=colorant"#d1d5db",
+        xautolimits=false,
+        yautolimits=false
     )
 end
 
 function Makie.plot!(p::Voronoi{<:Tuple{Vector{VoronoiCell}}})
-    cells = p[1]
-    vertices = getfield.(cells[], :vertices)
-    centroids = getfield.(cells[], :centroid)
-    positions = getfield.(cells[], :data)
+    centroids = lift(x -> getfield.(x, :centroid), p[1])
+    vertices = lift(x -> getfield.(x, :vertices), p[1])
+    positions = lift(x -> getfield.(x, :data), p[1])
+    lines = lift((x, y) -> [(x[i], y[i]) for i in eachindex(x)], centroids, positions)
 
-    lines = [(centroids[i], positions[i]) for i in eachindex(centroids)]
+    notify(p[1])
 
-    poly!(p, vertices, strokecolor=p.gridcolor[], color=(:black, 0), strokewidth=0.5)
-    linesegments!(p, lines, color=p.color[], strokewidth=0.5)
-    scatter!(p, centroids, color=p.color[])
+    poly!(p, vertices; p.attributes..., strokecolor=p.gridcolor[], color=(:black, 0), strokewidth=1)
+    linesegments!(p, lines; p.attributes...)
+    scatter!(p, centroids; p.attributes...)
 
     return p
 end
